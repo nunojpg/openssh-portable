@@ -162,6 +162,7 @@ typedef struct {
 
 	char   *hostbased_key_types;
 	char   *pubkey_key_types;
+	int    pubkey_rsa_ext;
 
 	char   *jump_user;
 	char   *jump_host;

@@ -448,7 +448,7 @@ input_userauth_service_accept(int type, u_int32_t seqnr, void *ctxt)
 int
 input_userauth_ext_info(int type, u_int32_t seqnr, void *ctxt)
 {
-	return kex_input_ext_info(type, seqnr, active_state);
+	return kex_input_ext_info(type, seqnr, active_state, options.pubkey_rsa_ext);
 }
 
 void

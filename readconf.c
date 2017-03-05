@@ -170,7 +170,7 @@ typedef enum {
 	oCanonicalizeFallbackLocal, oCanonicalizePermittedCNAMEs,
 	oStreamLocalBindMask, oStreamLocalBindUnlink, oRevokedHostKeys,
 	oFingerprintHash, oUpdateHostkeys, oHostbasedKeyTypes,
-	oPubkeyAcceptedKeyTypes, oProxyJump,
+	oPubkeyAcceptedKeyTypes, oPubkeyAcceptedRSAExt, oProxyJump,
 	oIgnoredUnknownOption, oDeprecated, oUnsupported
 } OpCodes;
 
@@ -306,6 +306,7 @@ static struct {
 	{ "updatehostkeys", oUpdateHostkeys },
 	{ "hostbasedkeytypes", oHostbasedKeyTypes },
 	{ "pubkeyacceptedkeytypes", oPubkeyAcceptedKeyTypes },
+	{ "pubkeyacceptedrsaext", oPubkeyAcceptedRSAExt },
 	{ "ignoreunknown", oIgnoreUnknown },
 	{ "proxyjump", oProxyJump },
 
@@ -769,6 +770,13 @@ static const struct multistate multistate_addressfamily[] = {
 	{ "any",			AF_UNSPEC },
 	{ NULL, -1 }
 };
+static const struct multistate multistate_pubkeyrsaext[] = {
+	{ "any",			0 },
+	{ "sha1-only",		1 },
+	{ "sha2-256",		2 },
+	{ "sha2-512",		3 },
+	{ NULL, -1 }
+};
 static const struct multistate multistate_controlmaster[] = {
 	{ "true",			SSHCTL_MASTER_YES },
 	{ "yes",			SSHCTL_MASTER_YES },
@@ -1224,6 +1232,11 @@ parse_int:
 		if (*activep && options->kex_algorithms == NULL)
 			options->kex_algorithms = xstrdup(arg);
 		break;
+
+	case oPubkeyAcceptedRSAExt:
+		intptr = &options->pubkey_rsa_ext;
+		multistate_ptr = multistate_pubkeyrsaext;
+		goto parse_multistate;
 
 	case oHostKeyAlgorithms:
 		charptr = &options->hostkeyalgorithms;
@@ -1879,6 +1892,7 @@ initialize_options(Options * options)
 	options->update_hostkeys = -1;
 	options->hostbased_key_types = NULL;
 	options->pubkey_key_types = NULL;
+	options->pubkey_rsa_ext = -1;
 }
 
 /*
@@ -1968,6 +1982,8 @@ fill_default_options(Options * options)
 		options->port = 0;	/* Filled in ssh_connect. */
 	if (options->address_family == -1)
 		options->address_family = AF_UNSPEC;
+	if (options->pubkey_rsa_ext == -1)
+		options->pubkey_rsa_ext = 0;
 	if (options->connection_attempts == -1)
 		options->connection_attempts = 1;
 	if (options->number_of_password_prompts == -1)
@@ -2514,6 +2530,7 @@ dump_client_config(Options *o, const char *host)
 
 	/* Flag options */
 	dump_cfg_fmtint(oAddressFamily, o->address_family);
+	dump_cfg_fmtint(oPubkeyAcceptedRSAExt, o->pubkey_rsa_ext);
 	dump_cfg_fmtint(oBatchMode, o->batch_mode);
 	dump_cfg_fmtint(oCanonicalizeFallbackLocal, o->canonicalize_fallback_local);
 	dump_cfg_fmtint(oCanonicalizeHostname, o->canonicalize_hostname);

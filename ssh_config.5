@@ -246,6 +246,15 @@ Valid arguments are
 (use IPv4 only), or
 .Cm inet6
 (use IPv6 only).
+.It Cm PubKeyAcceptedRSAExt
+Specifies which signature algorithms to use when using ssh-rsa public key authentication
+Valid arguments are
+.Cm any
+(the default, accept SHA-2 512, SHA-2 256 or SHA-1, prefer by this order),
+.Cm sha1
+(accept SHA-1 only), or
+.Cm sha2-256
+(accept SHA-2 256 or SHA-1, prefer by this order)
 .It Cm BatchMode
 If set to
 .Cm yes ,
