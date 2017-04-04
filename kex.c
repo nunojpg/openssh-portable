@@ -341,7 +341,7 @@ kex_send_ext_info(struct ssh *ssh)
 	int r;
 	char *algs;
 
-	if ((algs = sshkey_alg_list(0, 1, 1, ',')) == NULL)
+	if ((algs = sshkey_alg_list(KEY_ALG_PLAIN | KEY_ALG_SIGONLY, ',')) == NULL)
 		return SSH_ERR_ALLOC_FAIL;
 	if ((r = sshpkt_start(ssh, SSH2_MSG_EXT_INFO)) != 0 ||
 	    (r = sshpkt_put_u32(ssh, 1)) != 0 ||

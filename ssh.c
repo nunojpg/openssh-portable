@@ -684,11 +684,11 @@ main(int ac, char **av)
 			else if (strcmp(optarg, "kex") == 0)
 				cp = kex_alg_list('\n');
 			else if (strcmp(optarg, "key") == 0)
-				cp = sshkey_alg_list(0, 0, 0, '\n');
+				cp = sshkey_alg_list(KEY_ALG_PLAIN | KEY_ALG_CERT, '\n');
 			else if (strcmp(optarg, "key-cert") == 0)
-				cp = sshkey_alg_list(1, 0, 0, '\n');
+				cp = sshkey_alg_list(KEY_ALG_CERT, '\n');
 			else if (strcmp(optarg, "key-plain") == 0)
-				cp = sshkey_alg_list(0, 1, 0, '\n');
+				cp = sshkey_alg_list(KEY_ALG_PLAIN, '\n');
 			else if (strcmp(optarg, "protocol-version") == 0) {
 #ifdef WITH_SSH1
 				cp = xstrdup("1\n2");

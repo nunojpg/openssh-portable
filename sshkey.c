@@ -81,42 +81,41 @@ struct keytype {
 	const char *shortname;
 	int type;
 	int nid;
-	int cert;
-	int sigonly;
+	int alg_type;
 };
 static const struct keytype keytypes[] = {
-	{ "ssh-ed25519", "ED25519", KEY_ED25519, 0, 0, 0 },
+	{ "ssh-ed25519", "ED25519", KEY_ED25519, 0, KEY_ALG_PLAIN },
 	{ "ssh-ed25519-cert-v01@openssh.com", "ED25519-CERT",
-	    KEY_ED25519_CERT, 0, 1, 0 },
+	    KEY_ED25519_CERT, 0, KEY_ALG_CERT },
 #ifdef WITH_OPENSSL
 # ifdef WITH_SSH1
-	{ NULL, "RSA1", KEY_RSA1, 0, 0, 0 },
+	{ NULL, "RSA1", KEY_RSA1, 0, KEY_ALG_PLAIN },
 # endif
-	{ "ssh-rsa", "RSA", KEY_RSA, 0, 0, 0 },
-	{ "rsa-sha2-256", "RSA", KEY_RSA, 0, 0, 1 },
-	{ "rsa-sha2-512", "RSA", KEY_RSA, 0, 0, 1 },
-	{ "ssh-dss", "DSA", KEY_DSA, 0, 0, 0 },
+	{ "ssh-rsa", "RSA", KEY_RSA, 0, KEY_ALG_PLAIN },
+	{ "rsa-sha2-256", "RSA", KEY_RSA, 0, KEY_ALG_SIGONLY },
+	{ "rsa-sha2-512", "RSA", KEY_RSA, 0, KEY_ALG_SIGONLY },
+	{ "ssh-dss", "DSA", KEY_DSA, 0, KEY_ALG_PLAIN },
 # ifdef OPENSSL_HAS_ECC
-	{ "ecdsa-sha2-nistp256", "ECDSA", KEY_ECDSA, NID_X9_62_prime256v1, 0, 0 },
-	{ "ecdsa-sha2-nistp384", "ECDSA", KEY_ECDSA, NID_secp384r1, 0, 0 },
+	{ "ecdsa-sha2-nistp256", "ECDSA", KEY_ECDSA, NID_X9_62_prime256v1, KEY_ALG_PLAIN },
+	{ "ecdsa-sha2-nistp384", "ECDSA", KEY_ECDSA, NID_secp384r1, KEY_ALG_PLAIN },
 #  ifdef OPENSSL_HAS_NISTP521
-	{ "ecdsa-sha2-nistp521", "ECDSA", KEY_ECDSA, NID_secp521r1, 0, 0 },
+	{ "ecdsa-sha2-nistp521", "ECDSA", KEY_ECDSA, NID_secp521r1, KEY_ALG_PLAIN },
 #  endif /* OPENSSL_HAS_NISTP521 */
 # endif /* OPENSSL_HAS_ECC */
-	{ "ssh-rsa-cert-v01@openssh.com", "RSA-CERT", KEY_RSA_CERT, 0, 1, 0 },
-	{ "ssh-dss-cert-v01@openssh.com", "DSA-CERT", KEY_DSA_CERT, 0, 1, 0 },
+	{ "ssh-rsa-cert-v01@openssh.com", "RSA-CERT", KEY_RSA_CERT, 0, KEY_ALG_CERT },
+	{ "ssh-dss-cert-v01@openssh.com", "DSA-CERT", KEY_DSA_CERT, 0, KEY_ALG_CERT },
 # ifdef OPENSSL_HAS_ECC
 	{ "ecdsa-sha2-nistp256-cert-v01@openssh.com", "ECDSA-CERT",
-	    KEY_ECDSA_CERT, NID_X9_62_prime256v1, 1, 0 },
+	    KEY_ECDSA_CERT, NID_X9_62_prime256v1, KEY_ALG_CERT },
 	{ "ecdsa-sha2-nistp384-cert-v01@openssh.com", "ECDSA-CERT",
-	    KEY_ECDSA_CERT, NID_secp384r1, 1, 0 },
+	    KEY_ECDSA_CERT, NID_secp384r1, KEY_ALG_CERT },
 #  ifdef OPENSSL_HAS_NISTP521
 	{ "ecdsa-sha2-nistp521-cert-v01@openssh.com", "ECDSA-CERT",
-	    KEY_ECDSA_CERT, NID_secp521r1, 1, 0 },
+	    KEY_ECDSA_CERT, NID_secp521r1, KEY_ALG_CERT },
 #  endif /* OPENSSL_HAS_NISTP521 */
 # endif /* OPENSSL_HAS_ECC */
 #endif /* WITH_OPENSSL */
-	{ NULL, NULL, -1, -1, 0, 0 }
+	{ NULL, NULL, -1, -1, -1 }
 };
 
 const char *
@@ -150,7 +149,7 @@ sshkey_type_is_cert(int type)
 
 	for (kt = keytypes; kt->type != -1; kt++) {
 		if (kt->type == type)
-			return kt->cert;
+			return (kt->alg_type & KEY_ALG_CERT);
 	}
 	return 0;
 }
@@ -176,7 +175,7 @@ sshkey_type_from_name(const char *name)
 	for (kt = keytypes; kt->type != -1; kt++) {
 		/* Only allow shortname matches for plain key types */
 		if ((kt->name != NULL && strcmp(name, kt->name) == 0) ||
-		    (!kt->cert && strcasecmp(kt->shortname, name) == 0))
+		    ((kt->alg_type & KEY_ALG_PLAIN) && strcasecmp(kt->shortname, name) == 0))
 			return kt->type;
 	}
 	return KEY_UNSPEC;
@@ -197,7 +196,7 @@ sshkey_ecdsa_nid_from_name(const char *name)
 }
 
 char *
-sshkey_alg_list(int certs_only, int plain_only, int include_sigonly, char sep)
+sshkey_alg_list(int alg_type, char sep)
 {
 	char *tmp, *ret = NULL;
 	size_t nlen, rlen = 0;
@@ -206,9 +205,7 @@ sshkey_alg_list(int certs_only, int plain_only, int include_sigonly, char sep)
 	for (kt = keytypes; kt->type != -1; kt++) {
 		if (kt->name == NULL)
 			continue;
-		if (!include_sigonly && kt->sigonly)
-			continue;
-		if ((certs_only && !kt->cert) || (plain_only && kt->cert))
+		if (!(alg_type & kt->alg_type))
 			continue;
 		if (ret != NULL)
 			ret[rlen++] = sep;

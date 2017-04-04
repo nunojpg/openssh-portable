@@ -65,6 +65,12 @@ enum sshkey_types {
 	KEY_UNSPEC
 };
 
+enum sshkey_alg_types {
+	KEY_ALG_PLAIN = 1,
+	KEY_ALG_CERT = 2,
+	KEY_ALG_SIGONLY = 4
+};
+
 /* Default fingerprint hash */
 #define SSH_FP_HASH_DEFAULT	SSH_DIGEST_SHA256
 
@@ -156,7 +162,7 @@ int		 sshkey_ec_validate_private(const EC_KEY *);
 const char	*sshkey_ssh_name(const struct sshkey *);
 const char	*sshkey_ssh_name_plain(const struct sshkey *);
 int		 sshkey_names_valid2(const char *, int);
-char		*sshkey_alg_list(int, int, int, char);
+char		*sshkey_alg_list(int, char);
 
 int	 sshkey_from_blob(const u_char *, size_t, struct sshkey **);
 int	 sshkey_fromb(struct sshbuf *, struct sshkey **);
